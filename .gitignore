@@ -2,6 +2,9 @@
 /target
 Cargo.lock
 
+# Claude Code session artifacts
+.claude/
+
 # Flatpak build artifacts
 .flatpak-builder/
 *.flatpak
