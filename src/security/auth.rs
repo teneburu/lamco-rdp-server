@@ -240,46 +240,6 @@ impl PamValidator {
     }
 }
 
-#[cfg(feature = "pam-auth")]
-impl CredentialValidator for PamValidator {
-    fn validate(&self, credentials: &Credentials) -> Result<bool> {
-        let username = &credentials.username;
-
-        // Validate username format before touching PAM
-        validate_username(username)?;
-
-        // Check rate limiter
-        let peer_ip = self
-            .peer_ip
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .unwrap_or(IpAddr::from([0, 0, 0, 0]));
-
-        if let Some(remaining) = self.rate_limiter.check(peer_ip) {
-            warn!(
-                "Rate limited: {} ({}s remaining) for user '{}'",
-                peer_ip,
-                remaining.as_secs(),
-                username
-            );
-            return Ok(false);
-        }
-
-        // Extract password, do PAM auth, then zeroize the copy
-        let mut password = credentials.password.clone();
-        let result = self.do_pam_auth(username, &password);
-        password.zeroize();
-
-        match &result {
-            Ok(true) => self.rate_limiter.clear(peer_ip),
-            Ok(false) => self.rate_limiter.record_failure(peer_ip),
-            Err(_) => self.rate_limiter.record_failure(peer_ip),
-        }
-
-        result
-    }
-}
-
 /// User authenticator (legacy interface, kept for Security subsystem)
 pub struct UserAuthenticator {
     method: AuthMethod,
