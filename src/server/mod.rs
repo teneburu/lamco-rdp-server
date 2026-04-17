@@ -1678,9 +1678,6 @@ impl LamcoRdpServer {
                                     });
 
                                     use tokio::io::{AsyncRead, AsyncWrite};
-                                    use tokio_vsock::VsockStream;
-
-                                    let stream: Box<dyn AsyncRead + AsyncWrite + Send + Sync + Unpin> = Box::new(stream);
 
                                     if let Err(e) = self.rdp_server.run_connection(stream).await {
                                         let duration = conn_start.elapsed();
