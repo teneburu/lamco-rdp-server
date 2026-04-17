@@ -408,23 +408,3 @@ cast_precision_loss = "allow"
 # 3. Update ironrdp-* direct deps to crates.io versions
 # 4. Switch clipboard crates from bundled path deps to crates.io versions
 # =============================================================================
-
-[patch.crates-io]
-# IronRDP fork with combined auth patches (PRs #1150 + #1155)
-# Revert to Devolutions/IronRDP master once both PRs are merged upstream
-ironrdp = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-pdu = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-server = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-graphics = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-cliprdr = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-svc = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-dvc = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-core = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-tokio = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-displaycontrol = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-egfx = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-rdpsnd = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-
-# NOTE: The [patch."https://github.com/glamberson/IronRDP"] section was removed
-# on 2026-02-26. lamco-rdp-workspace now uses crates.io ironrdp (0.5.0+),
-# so the redirect from glamberson→lamco-admin is no longer needed.
