@@ -90,27 +90,21 @@ x509-parser = "0.18"
 
 # -----------------------------------------------------------------------------
 # RDP protocol (IronRDP)
-# Git deps required: ironrdp-egfx is not published to crates.io yet
-# (publish = false in upstream Cargo.toml)
-#
-# Using glamberson fork with combined auth patches:
-# - PR #1150: skip credential check when server creds are None
-# - PR #1155: expose received credentials in AcceptorResult
-# Revert to Devolutions/IronRDP master once both PRs are merged.
-# See: https://github.com/Devolutions/IronRDP
+# Using Devolutions/IronRDP upstream for generic AsyncRead+AsyncWrite support
+# Git deps required: ironrdp-egfx is not published to crates.io
 # -----------------------------------------------------------------------------
-ironrdp = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches", default-features = false, features = ["server"] }
-ironrdp-server = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches", features = ["egfx", "helper"] }
-ironrdp-tokio = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches", features = ["reqwest"] }
-ironrdp-pdu = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-displaycontrol = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-cliprdr = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-core = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-dvc = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-svc = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-egfx = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-graphics = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
-ironrdp-rdpsnd = { git = "https://github.com/glamberson/IronRDP", branch = "feat/combined-auth-patches" }
+ironrdp = { git = "https://github.com/Devolutions/IronRDP", branch = "master", default-features = false, features = ["server"] }
+ironrdp-server = { git = "https://github.com/Devolutions/IronRDP", branch = "master", features = ["egfx", "helper"] }
+ironrdp-tokio = { git = "https://github.com/Devolutions/IronRDP", branch = "master", features = ["reqwest"] }
+ironrdp-pdu = { git = "https://github.com/Devolutions/IronRDP", branch = "master" }
+ironrdp-displaycontrol = { git = "https://github.com/Devolutions/IronRDP", branch = "master" }
+ironrdp-cliprdr = { git = "https://github.com/Devolutions/IronRDP", branch = "master" }
+ironrdp-core = { git = "https://github.com/Devolutions/IronRDP", branch = "master" }
+ironrdp-dvc = { git = "https://github.com/Devolutions/IronRDP", branch = "master" }
+ironrdp-svc = { git = "https://github.com/Devolutions/IronRDP", branch = "master" }
+ironrdp-egfx = { git = "https://github.com/Devolutions/IronRDP", branch = "master" }
+ironrdp-graphics = { git = "https://github.com/Devolutions/IronRDP", branch = "master" }
+ironrdp-rdpsnd = { git = "https://github.com/Devolutions/IronRDP", branch = "master" }
 
 # -----------------------------------------------------------------------------
 # Wayland and Portal integration

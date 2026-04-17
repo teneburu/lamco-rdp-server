@@ -1677,7 +1677,12 @@ impl LamcoRdpServer {
                                         timestamp: conn_timestamp,
                                     });
 
-                                    use tokio::io::{AsyncRead, AsyncWrite};
+                                    use std::os::unix::io::{FromRawFd, IntoRawFd};
+                                    use tokio::net::TcpStream;
+                                    let stream = unsafe {
+                                        let std_stream = std::net::TcpStream::from_raw_fd(stream.into_raw_fd());
+                                        TcpStream::from_std(std_stream).expect("Failed to convert vsock to tcp")
+                                    };
 
                                     if let Err(e) = self.rdp_server.run_connection(stream).await {
                                         let duration = conn_start.elapsed();
