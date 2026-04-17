@@ -10,6 +10,14 @@ pub struct ServerConfig {
     /// Address to listen on (e.g., "0.0.0.0:3389")
     pub listen_addr: String,
 
+    /// Use vsock transport instead of TCP (for Hyper-V Enhanced Session)
+    #[serde(default)]
+    pub use_vsock: bool,
+
+    /// Port for vsock transport (only used when use_vsock is true)
+    #[serde(default)]
+    pub vsock_port: u16,
+
     /// Maximum number of concurrent connections
     pub max_connections: usize,
 
@@ -30,6 +38,8 @@ impl Default for ServerConfig {
     fn default() -> Self {
         Self {
             listen_addr: "0.0.0.0:3389".to_string(),
+            use_vsock: false,
+            vsock_port: 3389,
             max_connections: 10,
             session_timeout: 0,
             use_portals: true,

@@ -276,6 +276,11 @@ h264-source = ["openh264", "openh264-sys2", "libloading", "openh264/source", "op
 # Requires libva-dev and GPU drivers
 vaapi = ["cros-libva"]
 
+# Hyper-V vsock transport for Enhanced Session Mode
+# Requires Linux with Hyper-V vsock kernel support (vmw_vsock or hv_sock)
+# Enables --vsock CLI flag for AF_VSOCK transport instead of TCP
+vsock = ["tokio-vsock"]
+
 # NVENC: NVIDIA GPU encoding via Video Codec SDK
 # Requires NVIDIA driver with libnvidia-encode.so AND CUDA toolkit
 nvenc = ["nvidia-video-codec-sdk", "cudarc"]
@@ -285,6 +290,13 @@ hardware-encoding = ["vaapi", "nvenc"]
 
 # Future features (not yet implemented)
 # multimon = []       # Multi-monitor support
+
+# =============================================================================
+# Target-Specific Dependencies
+# =============================================================================
+
+[target.'cfg(target_os = "linux")'.dependencies]
+tokio-vsock = { version = "0.4", optional = true }
 
 # =============================================================================
 # Profiles

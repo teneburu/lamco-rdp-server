@@ -102,6 +102,14 @@ pub struct Args {
     ///   lamco-rdp-server --generate-config > config.toml
     #[arg(long)]
     pub generate_config: bool,
+
+    /// Use Hyper-V vsock transport instead of TCP
+    #[arg(long)]
+    pub vsock: bool,
+
+    /// Port for vsock transport (default: 3389)
+    #[arg(long, default_value = "3389")]
+    pub vsock_port: u16,
 }
 
 #[tokio::main]
@@ -197,7 +205,7 @@ async fn main() -> Result<()> {
     lamco_rdp_server::runtime::log_startup_diagnostics();
 
     // Apply CLI overrides to config (config already loaded above for logging)
-    let config = config.with_overrides(args.listen.clone(), args.port);
+    let config = config.with_overrides(args.listen.clone(), args.port).with_vsock(args.vsock, args.vsock_port);
 
     // Bridge config.toml protocol preferences → env vars for portal-generic
     config.export_protocol_env_vars();

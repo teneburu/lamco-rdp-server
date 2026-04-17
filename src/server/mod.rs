@@ -72,6 +72,8 @@ mod graphics_drain;
 mod input_handler;
 #[expect(dead_code, reason = "WIP: not yet integrated into the server pipeline")]
 mod multiplexer_loop;
+#[cfg(feature = "vsock")]
+mod vsock_listener;
 
 use std::{net::SocketAddr, sync::Arc};
 
@@ -1631,6 +1633,100 @@ impl LamcoRdpServer {
             );
         } else {
             info!("Authentication: {}", effective_auth_method);
+        }
+
+        #[cfg(feature = "vsock")]
+        let use_vsock = self.config.server.use_vsock;
+        #[cfg(not(feature = "vsock"))]
+        let use_vsock = false;
+
+        if use_vsock {
+            #[cfg(feature = "vsock")]
+            {
+                let vsock_port = self.config.server.vsock_port;
+                info!("Binding vsock listener on port {}", vsock_port);
+
+                let mut listener = match vsock_listener::bind_vsock(vsock_port as u32) {
+                    Ok(l) => l,
+                    Err(e) => {
+                        error!("Failed to bind vsock port {vsock_port}: {e}");
+                        return Err(anyhow::anyhow!("Failed to bind vsock port {vsock_port}: {e}"));
+                    }
+                };
+
+                info!("vsock listener bound to CID_ANY:{}", vsock_port);
+
+                let mut shutdown_rx = self.shutdown_broadcast.subscribe();
+                let result: anyhow::Result<()> = loop {
+                    tokio::select! {
+                        accept_result = listener.accept() => {
+                            match accept_result {
+                                Ok((stream, _addr)) => {
+                                    let peer = format!("vsock:{:?}", _addr);
+                                    debug!("Accepted connection from {peer}");
+                                    let client_id = format!("rdp-{}", uuid::Uuid::new_v4());
+                                    let conn_start = std::time::Instant::now();
+                                    let conn_timestamp = std::time::SystemTime::now()
+                                        .duration_since(std::time::UNIX_EPOCH)
+                                        .unwrap_or_default()
+                                        .as_secs();
+
+                                    let _ = self.event_tx.send(ServerEvent::ClientConnected {
+                                        client_id: client_id.clone(),
+                                        peer_address: peer.clone(),
+                                        timestamp: conn_timestamp,
+                                    });
+
+                                    use std::os::unix::io::{FromRawFd, IntoRawFd};
+                                    use tokio::net::TcpStream;
+                                    let stream = unsafe {
+                                        let std_stream = std::net::TcpStream::from_raw_fd(stream.into_raw_fd());
+                                        TcpStream::from_std(std_stream).expect("Failed to convert vsock to tcp")
+                                    };
+
+                                    if let Err(e) = self.rdp_server.run_connection(stream).await {
+                                        let duration = conn_start.elapsed();
+                                        let msg = format!("{e:#}");
+                                        let is_reset = msg.contains("Connection reset by peer")
+                                            || msg.contains("os error 104");
+
+                                        if is_reset && duration < std::time::Duration::from_secs(1) {
+                                            warn!("Connection from {peer} reset during handshake (likely client probe, lasted {:.0}ms)", duration.as_secs_f64() * 1000.0);
+                                        } else if is_reset {
+                                            error!("Connection from {peer} reset after {:.1}s (active session lost)", duration.as_secs_f64());
+                                        } else {
+                                            error!("Connection error from {peer} after {:.1}s: {msg}", duration.as_secs_f64());
+                                        }
+                                    }
+                                    let duration = conn_start.elapsed().as_secs();
+                                    let _ = self.event_tx.send(ServerEvent::ClientDisconnected {
+                                        client_id,
+                                        reason: "Connection ended".into(),
+                                        duration_seconds: duration,
+                                    });
+
+                                    if !self.on_disconnect().await {
+                                        let _ = self.event_tx.send(ServerEvent::StatusChanged {
+                                            old: "running".into(),
+                                            new: "stopped".into(),
+                                            message: "Session invalidated by compositor".into(),
+                                        });
+                                        break Ok(());
+                                    }
+                                }
+                                Err(e) => {
+                                    warn!("vsock accept failed: {e}");
+                                }
+                            }
+                        }
+                        _ = shutdown_rx.recv() => {
+                            info!("Shutdown signal received, stopping listener");
+                            break Ok(());
+                        }
+                    }
+                };
+                return result;
+            }
         }
 
         // Bind the TCP listener with SO_REUSEADDR to avoid EADDRINUSE after

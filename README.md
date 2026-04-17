@@ -105,6 +105,7 @@ cargo build --release --features "gui,wayland,libei"     # full-featured for wlr
 | `wl-clipboard` | Clipboard via wl-data-control for wlroots compositors |
 | `libei` | Portal + EIS input for Flatpak on wlroots |
 | `pam-auth` | PAM authentication (native only, not in Flatpak) |
+| `vsock` | Hyper-V vsock transport (AF_VSOCK) for Enhanced Session Mode |
 
 ## Architecture
 
@@ -142,6 +143,53 @@ lamco-rdp-server is built on a set of published Rust crates available on [crates
 These crates are MIT/Apache-2.0 licensed. See [lamco.ai/open-source](https://www.lamco.ai/open-source/) for documentation and details.
 
 The server also depends on a [fork of IronRDP](https://github.com/lamco-admin/IronRDP) that adds MS-RDPEGFX Graphics Pipeline Extension and clipboard file transfer support. Contributions to upstream IronRDP are in progress.
+
+## Hyper-V Enhanced Session Mode
+
+lamco-rdp-server supports Hyper-V Enhanced Session Mode via vsock (AF_VSOCK) transport. This enables richer RDP features when connecting from Windows Hyper-V Manager:
+
+- Dynamic display resizing
+- Clipboard sharing (bidirectional)
+- Drive redirection
+- Improved performance without TCP networking
+
+### Building with vsock support
+
+```bash
+cargo build --release --features vsock
+```
+
+### Running the server
+
+```bash
+# Default vsock port (3389)
+lamco-rdp-server --vsock
+
+# Custom vsock port
+lamco-rdp-server --vsock --vsock-port 3390
+```
+
+Or in `config.toml`:
+
+```toml
+[server]
+use_vsock = true
+vsock_port = 3389
+```
+
+### Hyper-V Setup
+
+1. Ensure theLinux VM has Hyper-V vsock support loaded:
+   ```bash
+   modprobe hv_vmbus  # For Hyper-V
+   lsmod | grep vsock   # Verify vsock loaded
+   ```
+
+2. In Hyper-V Manager, connect to your VM and click **"Enhanced Session"** before connecting.
+
+3. The RDP client should connect to the vsock endpoint automatically.
+
+**Note:** vsock uses a separate address space from TCP, so port 3389 can be used for both without conflict.
 
 ## Troubleshooting
 

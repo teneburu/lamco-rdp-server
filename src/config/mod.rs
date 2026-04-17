@@ -461,6 +461,15 @@ impl Config {
         self
     }
 
+    /// Apply vsock configuration from CLI arguments
+    pub fn with_vsock(mut self, use_vsock: bool, vsock_port: u16) -> Self {
+        self.server.use_vsock = use_vsock;
+        if use_vsock {
+            self.server.vsock_port = vsock_port;
+        }
+        self
+    }
+
     /// Convert server configuration to Portal configuration
     ///
     /// Maps relevant server settings to `lamco_portal::PortalConfig` for
