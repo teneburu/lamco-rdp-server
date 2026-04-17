@@ -1609,8 +1609,7 @@ impl LamcoRdpServer {
         // Set up PAM credential validator if auth_method=pam
         let pam_validator = if effective_auth_method == "pam" {
             let validator = std::sync::Arc::new(crate::security::PamValidator::new(None));
-            self.rdp_server.set_credential_validator(validator.clone());
-            info!("PAM credential validator attached to RDP server");
+            info!("PAM validator created");
             Some(validator)
         } else {
             None

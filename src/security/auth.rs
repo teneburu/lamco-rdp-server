@@ -16,7 +16,8 @@ use std::{
 };
 
 use anyhow::Result;
-use ironrdp_server::{CredentialValidator, Credentials};
+#[cfg(feature = "pam-auth")]
+use ironrdp_server::Credentials;
 #[cfg(feature = "pam-auth")]
 use nonstick::{AuthnFlags, ConversationAdapter, Transaction, TransactionBuilder};
 use tracing::{info, warn};
@@ -239,6 +240,7 @@ impl PamValidator {
     }
 }
 
+#[cfg(feature = "pam-auth")]
 impl CredentialValidator for PamValidator {
     fn validate(&self, credentials: &Credentials) -> Result<bool> {
         let username = &credentials.username;
