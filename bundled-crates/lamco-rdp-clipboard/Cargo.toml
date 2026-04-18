@@ -32,7 +32,7 @@ unreachable_pub = "warn"
 
 [dependencies]
 lamco-clipboard-core = { path = "../lamco-clipboard-core" }
-ironrdp-cliprdr = "0.5"
-ironrdp-core = "0.1"
+ironrdp-cliprdr = { git = "https://github.com/Devolutions/IronRDP", branch = "master" }
+ironrdp-core = { git = "https://github.com/Devolutions/IronRDP", branch = "master" }
 thiserror = "2"
 tracing = "0.1"

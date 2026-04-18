@@ -6,7 +6,7 @@
     <error status="fixed">FileContentsFlags::DATA not found</error>
     <error status="fixed">ClipboardMessage::SendLockClipboard variant missing</error>
     <error status="fixed">Index type mismatches (u32 vs i32) in clipboard manager</error>
-    <error>CliprdrBackend trait mismatch due to multiple ironrdp-cliprdr versions</error>
+    <error status="fixed">CliprdrBackend trait mismatch due to multiple ironrdp-cliprdr versions</error>
     <error>VideoFrame type mismatch due to multiple lamco_pipewire versions</error>
   </build-error-summary>
   <issue-list>
@@ -66,7 +66,7 @@
         Build verification: `cargo build --release --features "vsock,gui,wayland,wl-clipboard,libei"` - Index type mismatch errors no longer appear.
       </resolution>
     </issue>
-    <issue id="4" title="CliprdrBackend trait version conflict">
+    <issue id="4" title="CliprdrBackend trait version conflict" status="fixed">
       <description>
         The error indicates multiple versions of `ironrdp-cliprdr` in the dependency graph (0.5.0 from crates.io and git master). The `RdpCliprdrBackend` implements a different version of `CliprdrBackend` than expected by the upstream server code. This requires aligning the `ironrdp-cliprdr` version used across all dependencies.
       </description>
@@ -77,6 +77,12 @@
         <link>https://raw.githubusercontent.com/Devolutions/IronRDP/d0e18e3693f313e83c769fb37fa991965d2a39d3/crates/ironrdp-cliprdr/src/backend.rs</link>
         <link>https://raw.githubusercontent.com/Devolutions/IronRDP/d0e18e3693f313e83c769fb37fa991965d2a39d3/Cargo.toml</link>
       </docs>
+      <resolution>
+        Updated bundled-crates/lamco-rdp-clipboard/Cargo.toml to use git master for ironrdp-cliprdr and ironrdp-core instead of crates.io versions (0.5 and 0.1 respectively). This aligns all IronRDP dependencies to the same upstream commit.
+        Also fixed index type mismatch in bundled-crates/lamco-rdp-clipboard/src/event.rs: changed ClipboardEvent::FileContentsRequest.index from u32 to i32 to match upstream FileContentsRequest.
+        Added cast in src/clipboard/ironrdp_backend.rs line 168: index as u32 to bridge between upstream i32 and local RdpFileContentsRequest u32.
+        Build verification: `cargo build --release --features "vsock,gui,wayland,wl-clipboard,libei"` - E0277 CliprdrBackend trait error no longer appears.
+      </resolution>
     </issue>
     <issue id="5" title="VideoFrame type mismatch due to lamco_pipewire version conflict">
       <description>

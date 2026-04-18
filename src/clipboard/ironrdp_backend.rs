@@ -165,7 +165,7 @@ impl LamcoCliprdrFactory {
                             let _ = manager_tx
                                 .send(crate::clipboard::ClipboardEvent::RdpFileContentsRequest {
                                     stream_id,
-                                    list_index: index,
+                                    list_index: index as u32,
                                     position,
                                     size,
                                     is_size_request,

@@ -47,8 +47,8 @@ pub enum ClipboardEvent {
     FileContentsRequest {
         /// Stream ID for correlation
         stream_id: u32,
-        /// File index
-        index: u32,
+        /// File index (per MS-RDPECLIP, lindex is signed 32-bit)
+        index: i32,
         /// Byte offset
         position: u64,
         /// Requested size
