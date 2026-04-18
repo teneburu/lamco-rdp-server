@@ -1,0 +1,117 @@
+<task-context>
+  <overview>
+    The goal is to resolve API incompatibilities between the lamco-rdp-server codebase and the upstream Devolutions/IronRDP master branch. The project previously used a fork and now requires alignment with the latest upstream API. Each incompatibility should be addressed in a separate commit, and all fixes must be made with reference to official IronRDP documentation and source code.
+  </overview>
+  <build-error-summary>
+    <error status="fixed">FileContentsFlags::DATA not found</error>
+    <error>ClipboardMessage::SendLockClipboard variant missing</error>
+    <error>Index type mismatches (u32 vs i32) in clipboard manager</error>
+    <error>CliprdrBackend trait mismatch due to multiple ironrdp-cliprdr versions</error>
+    <error>VideoFrame type mismatch due to multiple lamco_pipewire versions</error>
+  </build-error-summary>
+  <issue-list>
+    <issue id="1" title="FileContentsFlags::DATA missing" status="fixed">
+      <description>
+        The code uses `FileContentsFlags::DATA`, but the upstream `ironrdp-cliprdr` crate no longer exposes this associated constant. The build error suggests the constant does not exist in the current scope. Upstream may have renamed or removed it, or a different version is being resolved.
+      </description>
+      <files>src/clipboard/manager.rs (lines 984, 2198, 3099)</files>
+      <docs>
+        <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/pdu/struct.FileContentsFlags.html</link>
+        <link>https://raw.githubusercontent.com/Devolutions/IronRDP/d0e18e3693f313e83c769fb37fa991965d2a39d3/crates/ironrdp-cliprdr/src/pdu/file_contents.rs</link>
+        <note>The `FileContentsFlags::DATA` constant exists in version 0.5.0 but may have been removed in the git master branch.</note>
+      </docs>
+      <resolution>
+        Replaced `FileContentsFlags::DATA` with `FileContentsFlags::RANGE` in all three locations (lines 984, 2198, 3099).
+        The upstream IronRDP split the DATA flag into SIZE and RANGE. All three usages were requesting actual file data content,
+        not just metadata, so RANGE is the correct flag.
+        Commit: 2d69ca2
+      </resolution>
+    </issue>
+    <issue id="2" title="ClipboardMessage::SendLockClipboard variant removed">
+      <description>
+        The enum `ironrdp_cliprdr::backend::ClipboardMessage` no longer contains a `SendLockClipboard` variant. The build fails where this variant is constructed. Upstream likely restructured clipboard message handling.
+      </description>
+      <files>src/clipboard/manager.rs (lines 2025, 2123)</files>
+      <docs>
+        <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/backend/enum.ClipboardMessage.html</link>
+        <link>https://raw.githubusercontent.com/Devolutions/IronRDP/d0e18e3693f313e83c769fb37fa991965d2a39d3/crates/ironrdp-cliprdr/src/backend.rs</link>
+        <link>https://docs.rs/ironrdp-cliprdr/0.1.1/src/ironrdp_cliprdr/backend.rs.html#10-22</link>
+        <note>The enum variants in the latest upstream version are: `SendInitiateCopy`, `SendFormatData`, `SendInitiatePaste`, and `Error`.</note>
+      </docs>
+    </issue>
+    <issue id="3" title="Index type mismatch (u32 vs i32) in clipboard manager">
+      <description>
+        Several places pass a `u32` where the upstream API now expects an `i32` for file indices. This appears in the construction of `FileContentsRequest` and `FileContentsResponse`.
+      </description>
+      <files>src/clipboard/manager.rs (lines 983, 2197, 3098)</files>
+      <docs>
+        <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/pdu/struct.FileContentsRequest.html</link>
+        <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/pdu/struct.FileContentsResponse.html</link>
+        <link>https://raw.githubusercontent.com/Devolutions/IronRDP/d0e18e3693f313e83c769fb37fa991965d2a39d3/crates/ironrdp-cliprdr/src/pdu/file_contents.rs</link>
+      </docs>
+    </issue>
+    <issue id="4" title="CliprdrBackend trait version conflict">
+      <description>
+        The error indicates multiple versions of `ironrdp-cliprdr` in the dependency graph (0.5.0 from crates.io and git master). The `RdpCliprdrBackend` implements a different version of `CliprdrBackend` than expected by the upstream server code. This requires aligning the `ironrdp-cliprdr` version used across all dependencies.
+      </description>
+      <files>Cargo.toml (IronRDP dependencies), src/clipboard/ironrdp_backend.rs (line 250)</files>
+      <docs>
+        <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/backend/trait.CliprdrBackend.html</link>
+        <link>https://docs.rs/ironrdp-cliprdr/latest/ironrdp_cliprdr/backend/trait.CliprdrBackend.html</link>
+        <link>https://raw.githubusercontent.com/Devolutions/IronRDP/d0e18e3693f313e83c769fb37fa991965d2a39d3/crates/ironrdp-cliprdr/src/backend.rs</link>
+        <link>https://raw.githubusercontent.com/Devolutions/IronRDP/d0e18e3693f313e83c769fb37fa991965d2a39d3/Cargo.toml</link>
+      </docs>
+    </issue>
+    <issue id="5" title="VideoFrame type mismatch due to lamco_pipewire version conflict">
+      <description>
+        The build uses `lamco-pipewire` 0.3.3 and 0.4.2 simultaneously. `lamco-video::Converter::convert_frame` expects `lamco_pipewire::frame::VideoFrame` from version 0.4.2, but receives the type from version 0.3.3. The dependency tree must be unified to a single version.
+      </description>
+      <files>src/server/display_handler.rs (line 2057), Cargo.toml (lamco-pipewire dependency)</files>
+      <docs>
+        <link>https://docs.rs/lamco-pipewire/0.4.2/lamco_pipewire/frame/struct.VideoFrame.html</link>
+        <link>https://docs.rs/lamco-pipewire/0.3.3/lamco_pipewire/frame/struct.VideoFrame.html</link>
+        <link>https://docs.rs/lamco-video/0.1.8/lamco_video/converter/struct.Converter.html#method.convert_frame</link>
+        <note>Version 0.3.3 of `lamco-pipewire` does not have a dedicated docs.rs page; the type is defined in the crate source.</note>
+      </docs>
+    </issue>
+  </issue-list>
+  <documentation-resources>
+    <group name="IronRDP Upstream Source">
+      <link>https://github.com/Devolutions/IronRDP/tree/d0e18e3693f313e83c769fb37fa991965d2a39d3</link>
+      <link>https://raw.githubusercontent.com/Devolutions/IronRDP/d0e18e3693f313e83c769fb37fa991965d2a39d3/crates/ironrdp-cliprdr/src/pdu/file_contents.rs</link>
+      <link>https://raw.githubusercontent.com/Devolutions/IronRDP/d0e18e3693f313e83c769fb37fa991965d2a39d3/crates/ironrdp-cliprdr/src/backend.rs</link>
+    </group>
+    <group name="IronRDP Docs.rs (Latest / 0.5.0)">
+      <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/</link>
+      <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/backend/enum.ClipboardMessage.html</link>
+      <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/backend/trait.CliprdrBackend.html</link>
+      <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/pdu/struct.FileContentsFlags.html</link>
+      <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/pdu/struct.FileContentsRequest.html</link>
+      <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/pdu/struct.FileContentsResponse.html</link>
+    </group>
+    <group name="IronRDP Docs.rs (Version 0.5.0)">
+      <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/pdu/struct.FileContentsFlags.html</link>
+      <note>The `DATA` constant is present in this version.</note>
+    </group>
+    <group name="lamco-pipewire Docs">
+      <link>https://docs.rs/lamco-pipewire/0.4.2/lamco_pipewire/</link>
+      <link>https://docs.rs/lamco-pipewire/0.4.2/lamco_pipewire/frame/struct.VideoFrame.html</link>
+    </group>
+    <group name="lamco-video Docs">
+      <link>https://docs.rs/lamco-video/0.1.8/lamco_video/</link>
+      <link>https://docs.rs/lamco-video/0.1.8/lamco_video/converter/struct.Converter.html#method.convert_frame</link>
+    </group>
+  </documentation-resources>
+  <workflow-instructions>
+    <step>Read the build error summary and issue list to understand the scope.</step>
+    <step>For each issue, examine the provided documentation links and source code references, and perform additional web searches to determine the correct upstream API.</step>
+    <step>Fix one issue per commit, starting with Issue #1 and proceeding sequentially.</step>
+    <step>After each fix, verify that the build advances past that specific error (additional errors from later issues are expected).</step>
+    <step>Do not attempt to resolve all issues in a single commit.</step>
+    <step>Use only the official IronRDP upstream APIs as documented; avoid guessing or introducing custom workarounds.</step>
+  </workflow-instructions>
+  <constraints>
+    <constraint>All fixes must reference the documentation links provided.</constraint>
+    <constraint>Preserve the existing vsock transport implementation; changes should only address API incompatibilities.</constraint>
+  </constraints>
+</task-context> 
