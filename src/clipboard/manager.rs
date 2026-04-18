@@ -980,7 +980,7 @@ impl ClipboardOrchestrator {
 
                     let rdp_request = RdpFileContentsRequest {
                         stream_id,
-                        index: request.file_index,
+                        index: request.file_index as i32,
                         flags: FileContentsFlags::RANGE,
                         position: request.offset,
                         requested_size: request.size,
@@ -2178,7 +2178,7 @@ impl ClipboardOrchestrator {
                             match sender.send(ironrdp_server::ServerEvent::Clipboard(
                                 ClipboardMessage::SendFileContentsRequest(FileContentsRequest {
                                     stream_id,
-                                    index: idx as u32,
+                                    index: idx as i32,
                                     flags: FileContentsFlags::RANGE,
                                     position: 0,
                                     requested_size: request_size,
@@ -3079,7 +3079,7 @@ impl ClipboardOrchestrator {
                 if let Err(e) = sender.send(ironrdp_server::ServerEvent::Clipboard(
                     ClipboardMessage::SendFileContentsRequest(FileContentsRequest {
                         stream_id,
-                        index: file_index,
+                        index: file_index as i32,
                         flags: FileContentsFlags::RANGE,
                         position,
                         requested_size: next_chunk_size,

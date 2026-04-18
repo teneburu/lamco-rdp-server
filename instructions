@@ -5,7 +5,7 @@
   <build-error-summary>
     <error status="fixed">FileContentsFlags::DATA not found</error>
     <error status="fixed">ClipboardMessage::SendLockClipboard variant missing</error>
-    <error>Index type mismatches (u32 vs i32) in clipboard manager</error>
+    <error status="fixed">Index type mismatches (u32 vs i32) in clipboard manager</error>
     <error>CliprdrBackend trait mismatch due to multiple ironrdp-cliprdr versions</error>
     <error>VideoFrame type mismatch due to multiple lamco_pipewire versions</error>
   </build-error-summary>
@@ -47,16 +47,24 @@
         Commit: bdba18f
       </resolution>
     </issue>
-    <issue id="3" title="Index type mismatch (u32 vs i32) in clipboard manager">
+    <issue id="3" title="Index type mismatch (u32 vs i32) in clipboard manager" status="fixed">
       <description>
         Several places pass a `u32` where the upstream API now expects an `i32` for file indices. This appears in the construction of `FileContentsRequest` and `FileContentsResponse`.
       </description>
-      <files>src/clipboard/manager.rs (lines 983, 2197, 3098)</files>
+      <files>src/clipboard/manager.rs (lines 983, 2179, 3082)</files>
       <docs>
         <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/pdu/struct.FileContentsRequest.html</link>
         <link>https://docs.rs/ironrdp-cliprdr/0.5.0/ironrdp_cliprdr/pdu/struct.FileContentsResponse.html</link>
         <link>https://raw.githubusercontent.com/Devolutions/IronRDP/d0e18e3693f313e83c769fb37fa991965d2a39d3/crates/ironrdp-cliprdr/src/pdu/file_contents.rs</link>
       </docs>
+      <resolution>
+        Changed index field from u32 to i32 in three FileContentsRequest constructions:
+        - Line 983: `index: request.file_index` -> `index: request.file_index as i32` (request.file_index is u32 from fuse::FileContentsRequest)
+        - Line 2179: `index: idx as u32` -> `index: idx as i32` (idx is usize from enumerate())
+        - Line 3082: `index: file_index` -> `index: file_index as i32` (file_index is u32 from IncomingFile struct)
+        Per MS-RDPECLIP spec referenced in upstream source, lindex is a signed 32-bit integer.
+        Build verification: `cargo build --release --features "vsock,gui,wayland,wl-clipboard,libei"` - Index type mismatch errors no longer appear.
+      </resolution>
     </issue>
     <issue id="4" title="CliprdrBackend trait version conflict">
       <description>
