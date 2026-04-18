@@ -981,7 +981,7 @@ impl ClipboardOrchestrator {
                     let rdp_request = RdpFileContentsRequest {
                         stream_id,
                         index: request.file_index,
-                        flags: FileContentsFlags::DATA,
+                        flags: FileContentsFlags::RANGE,
                         position: request.offset,
                         requested_size: request.size,
                         data_id: request.clip_data_id,
@@ -2195,7 +2195,7 @@ impl ClipboardOrchestrator {
                                 ClipboardMessage::SendFileContentsRequest(FileContentsRequest {
                                     stream_id,
                                     index: idx as u32,
-                                    flags: FileContentsFlags::DATA,
+                                    flags: FileContentsFlags::RANGE,
                                     position: 0,
                                     requested_size: request_size,
                                     data_id: Some(clip_data_id),
@@ -3096,7 +3096,7 @@ impl ClipboardOrchestrator {
                     ClipboardMessage::SendFileContentsRequest(FileContentsRequest {
                         stream_id,
                         index: file_index,
-                        flags: FileContentsFlags::DATA,
+                        flags: FileContentsFlags::RANGE,
                         position,
                         requested_size: next_chunk_size,
                         data_id: Some(clip_data_id),
