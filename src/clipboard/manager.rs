@@ -2019,14 +2019,6 @@ impl ClipboardOrchestrator {
                         info!("Using FUSE on-demand file transfer (no upfront download)");
 
                         let clip_data_id = 1u32;
-                        if let Some(sender) = server_event_sender.read().await.as_ref() {
-                            use ironrdp_cliprdr::backend::ClipboardMessage;
-                            if let Err(e) = sender.send(ironrdp_server::ServerEvent::Clipboard(
-                                ClipboardMessage::SendLockClipboard { clip_data_id },
-                            )) {
-                                warn!("Failed to send Lock PDU for FUSE transfer: {:?}", e);
-                            }
-                        }
 
                         let fuse_descriptors: Vec<crate::clipboard::fuse::FileDescriptor> =
                             descriptors
@@ -2112,18 +2104,10 @@ impl ClipboardOrchestrator {
                         state.set_pending_descriptors(descriptors.clone());
                         state.portal_serial = Some(serial);
 
-                        use ironrdp_cliprdr::{
-                            backend::ClipboardMessage,
-                            pdu::{FileContentsFlags, FileContentsRequest},
-                        };
+                        use ironrdp_cliprdr::backend::ClipboardMessage;
+                        use ironrdp_cliprdr::pdu::{FileContentsFlags, FileContentsRequest};
 
                         let clip_data_id = 1u32;
-                        info!("Sending Lock PDU (clip_data_id={})", clip_data_id);
-                        if let Err(e) = sender.send(ironrdp_server::ServerEvent::Clipboard(
-                            ClipboardMessage::SendLockClipboard { clip_data_id },
-                        )) {
-                            error!("Failed to send Lock PDU: {:?}", e);
-                        }
 
                         for (idx, desc) in descriptors.iter().enumerate() {
                             let stream_id = state.allocate_stream_id();

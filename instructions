@@ -4,7 +4,7 @@
   </overview>
   <build-error-summary>
     <error status="fixed">FileContentsFlags::DATA not found</error>
-    <error>ClipboardMessage::SendLockClipboard variant missing</error>
+    <error status="fixed">ClipboardMessage::SendLockClipboard variant missing</error>
     <error>Index type mismatches (u32 vs i32) in clipboard manager</error>
     <error>CliprdrBackend trait mismatch due to multiple ironrdp-cliprdr versions</error>
     <error>VideoFrame type mismatch due to multiple lamco_pipewire versions</error>
@@ -27,7 +27,7 @@
         Commit: 2d69ca2
       </resolution>
     </issue>
-    <issue id="2" title="ClipboardMessage::SendLockClipboard variant removed">
+    <issue id="2" title="ClipboardMessage::SendLockClipboard variant removed" status="fixed">
       <description>
         The enum `ironrdp_cliprdr::backend::ClipboardMessage` no longer contains a `SendLockClipboard` variant. The build fails where this variant is constructed. Upstream likely restructured clipboard message handling.
       </description>
@@ -38,6 +38,14 @@
         <link>https://docs.rs/ironrdp-cliprdr/0.1.1/src/ironrdp_cliprdr/backend.rs.html#10-22</link>
         <note>The enum variants in the latest upstream version are: `SendInitiateCopy`, `SendFormatData`, `SendInitiatePaste`, and `Error`.</note>
       </docs>
+      <resolution>
+        Removed the two usages of `ClipboardMessage::SendLockClipboard` (lines 2020-2028 and 2112-2126 in manager.rs).
+        The upstream IronRDP (CliprdrServer) automatically sends Lock/Unlock PDUs when file data is detected in FormatList PDUs
+        per [MS-RDPECLIP] spec. Manual Lock PDU sending from the backend is no longer supported or necessary.
+        The `clip_data_id` variable is still retained as it's used for FUSE file management and file tracking.
+        Build verification: `cargo build --release --features "vsock,gui,wayland,wl-clipboard,libei"` - SendLockClipboard error no longer appears.
+        Commit: bdba18f
+      </resolution>
     </issue>
     <issue id="3" title="Index type mismatch (u32 vs i32) in clipboard manager">
       <description>
@@ -106,10 +114,10 @@
     <step>Read the build error summary and issue list to understand the scope.</step>
     <step>For each issue, examine the provided documentation links and source code references, and perform additional web searches to determine the correct upstream API.</step>
     <step>Fix one issue per commit, starting with Issue #1 and proceeding sequentially.</step>
-    <step>After each fix, verify that the build advances past that specific error (additional errors from later issues are expected).</step>
+    <step>After each fix, verify that the build advances past that specific error by running `cargo build --release --features "vsock,gui,wayland,wl-clipboard,libei"` and confirming the specific error no longer appears (additional errors from later issues are expected).</step>
     <step>Do not attempt to resolve all issues in a single commit.</step>
     <step>Use only the official IronRDP upstream APIs as documented; avoid guessing or introducing custom workarounds.</step>
-    <step>After each fix, update the ./instructions file with the resolution details and status, then commit. Await further instructions before proceeding to the next issue.</step>
+    <step>After each fix, update the ./instructions file with the resolution details and status, THEN commit. Await further instructions before proceeding to the next issue.</step>
   </workflow-instructions>
   <constraints>
     <constraint>All fixes must reference the documentation links provided.</constraint>
