@@ -109,6 +109,7 @@
     <step>After each fix, verify that the build advances past that specific error (additional errors from later issues are expected).</step>
     <step>Do not attempt to resolve all issues in a single commit.</step>
     <step>Use only the official IronRDP upstream APIs as documented; avoid guessing or introducing custom workarounds.</step>
+    <step>After each fix, update the ./instructions file with the resolution details and status, then commit. Await further instructions before proceeding to the next issue.</step>
   </workflow-instructions>
   <constraints>
     <constraint>All fixes must reference the documentation links provided.</constraint>
