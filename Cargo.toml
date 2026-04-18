@@ -38,11 +38,11 @@ path = "src/lib.rs"
 # different ironrdp-cliprdr than the rest of the binary, causing trait
 # diamond conflicts. Once ironrdp-egfx is published to crates.io and
 # the [patch] section is removed, clipboard crates can use crates.io.
-lamco-wayland = "0.2.8"
+lamco-wayland = "=0.2.8"
 lamco-rdp = "0.5.1"
 lamco-portal = { version = "0.3.2", features = ["dbus-clipboard"] }
-lamco-pipewire = { version = "0.3.1", features = ["audio", "damage"] }
-lamco-video = "0.1.4"
+lamco-pipewire = { version = "=0.3.1", features = ["audio", "damage"] }
+lamco-video = "=0.1.4"
 lamco-rdp-input = "0.1.2"
 # Clipboard crates - bundled (IronRDP [patch] diamond; see note above)
 # Source: ~/wayland/lamco-rdp-workspace/crates/...

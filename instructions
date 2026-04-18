@@ -7,7 +7,7 @@
     <error status="fixed">ClipboardMessage::SendLockClipboard variant missing</error>
     <error status="fixed">Index type mismatches (u32 vs i32) in clipboard manager</error>
     <error status="fixed">CliprdrBackend trait mismatch due to multiple ironrdp-cliprdr versions</error>
-    <error>VideoFrame type mismatch due to multiple lamco_pipewire versions</error>
+    <error status="fixed">VideoFrame type mismatch due to multiple lamco_pipewire versions</error>
   </build-error-summary>
   <issue-list>
     <issue id="1" title="FileContentsFlags::DATA missing" status="fixed">
@@ -84,7 +84,7 @@
         Build verification: `cargo build --release --features "vsock,gui,wayland,wl-clipboard,libei"` - E0277 CliprdrBackend trait error no longer appears.
       </resolution>
     </issue>
-    <issue id="5" title="VideoFrame type mismatch due to lamco_pipewire version conflict">
+    <issue id="5" title="VideoFrame type mismatch due to lamco_pipewire version conflict" status="fixed">
       <description>
         The build uses `lamco-pipewire` 0.3.3 and 0.4.2 simultaneously. `lamco-video::Converter::convert_frame` expects `lamco_pipewire::frame::VideoFrame` from version 0.4.2, but receives the type from version 0.3.3. The dependency tree must be unified to a single version.
       </description>
@@ -95,6 +95,14 @@
         <link>https://docs.rs/lamco-video/0.1.8/lamco_video/converter/struct.Converter.html#method.convert_frame</link>
         <note>Version 0.3.3 of `lamco-pipewire` does not have a dedicated docs.rs page; the type is defined in the crate source.</note>
       </docs>
+      <resolution>
+        Pinned lamco dependencies to exact versions in Cargo.toml to prevent cargo from resolving to incompatible newer versions that create dependency diamonds:
+        - lamco-wayland: "0.2.8" -> "=0.2.8" (prevents upgrade to 0.2.9 which pulls lamco-video 0.1.8)
+        - lamco-pipewire: "0.3.1" -> "=0.3.1" (prevents upgrade to 0.3.3)
+        - lamco-video: "0.1.4" -> "=0.1.4" (prevents upgrade to 0.1.8 which requires lamco-pipewire 0.4.2)
+        This ensures all lamco crates use lamco-pipewire 0.3.x compatible versions, eliminating the VideoFrame type mismatch.
+        Build verification: cargo build --release --features "vsock,gui,wayland,wl-clipboard,libei" - E0308 error resolved, build completes successfully with only warnings.
+      </resolution>
     </issue>
   </issue-list>
   <documentation-resources>
