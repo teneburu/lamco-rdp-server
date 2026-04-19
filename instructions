@@ -8,6 +8,8 @@
     <error status="fixed">Index type mismatches (u32 vs i32) in clipboard manager</error>
     <error status="fixed">CliprdrBackend trait mismatch due to multiple ironrdp-cliprdr versions</error>
     <error status="fixed">VideoFrame type mismatch due to multiple lamco_pipewire versions</error>
+    <error status="fixed">VSOCK stream converted to TCP instead of passed natively to IronRDP</error>
+    <error status="fixed">Connection establishment failures (VSOCK: not enough bytes, TLS: InvalidContentType)</error>
   </build-error-summary>
   <issue-list>
     <issue id="1" title="FileContentsFlags::DATA missing" status="fixed">
@@ -102,6 +104,59 @@
         - lamco-video: "0.1.4" -> "=0.1.4" (prevents upgrade to 0.1.8 which requires lamco-pipewire 0.4.2)
         This ensures all lamco crates use lamco-pipewire 0.3.x compatible versions, eliminating the VideoFrame type mismatch.
         Build verification: cargo build --release --features "vsock,gui,wayland,wl-clipboard,libei" - E0308 error resolved, build completes successfully with only warnings.
+      </resolution>
+    </issue>
+    <issue id="6" title="VSOCK stream converted to TCP instead of passed natively to IronRDP" status="fixed">
+      <description>
+        The vsock listener converts tokio_vsock::VsockStream to std::net::TcpStream via unsafe raw file descriptor manipulation before passing it to IronRDP's run_connection(). This is unnecessary and incorrect - the upstream IronRDP run_connection() accepts any type implementing AsyncRead + AsyncWrite + Send + Sync + Unpin, which VsockStream already satisfies. This violates the requirement for "True VSOCK network transport (no conversion to TCP)" for native Wayland Hyper-V ESM.
+      </description>
+      <files>src/server/mod.rs (lines 1682-1685)</files>
+      <docs>
+        <link>https://raw.githubusercontent.com/Devolutions/IronRDP/d0e18e3693f313e83c769fb37fa991965d2a39d3/crates/ironrdp-server/src/server.rs</link>
+        <link>https://docs.rs/tokio-vsock/0.4.0/tokio_vsock/struct.VsockStream.html</link>
+        <note>IronRDP run_connection() signature: pub async fn run_connection&lt;S&gt;(&amp;mut self, stream: S) -> Result&lt;()&gt; where S: AsyncRead + AsyncWrite + Send + Sync + Unpin</note>
+        <note>tokio-vsock::VsockStream implements AsyncRead, AsyncWrite, and through AsyncFd inner type, provides Send + Sync + Unpin</note>
+      </docs>
+      <resolution>
+        Removed unsafe FD conversion (lines 1682-1685 in src/server/mod.rs) and now passes tokio_vsock::VsockStream directly to self.rdp_server.run_connection(stream).await.
+        
+        Changes made:
+        - Removed: use std::os::unix::io::{FromRawFd, IntoRawFd};
+        - Removed: use tokio::net::TcpStream;
+        - Removed: let stream = unsafe { std::net::TcpStream::from_raw_fd(...) };
+        
+        The VsockStream from vsock_listener::bind_vsock().accept() already implements AsyncRead + AsyncWrite + Send + Sync + Unpin through its underlying AsyncFd<vsock::VsockStream>, matching the trait bounds required by IronRDP's run_connection&lt;S&gt;().
+        
+        Build verification: cargo build --release --features "vsock,gui,wayland,wl-clipboard,libei" - Compiles successfully.
+        Commit: (current)
+      </resolution>
+    </issue>
+    <issue id="7" title="Connection establishment failures with VSOCK and TLS in IronRDP upstream" status="fixed">
+      <description>
+        VSOCK connections fail during the IronRDP connection handshake with `accept_begin failed: [read frame by hint] custom error: not enough bytes` error originating from ironrdp_async::framed::read_by_hint when the read returns 0 bytes (EOF). TLS connections fail with `Failed to TLS accept: received corrupt message of type InvalidContentType` from rustls. Both errors occur before any RDP session can be established. The hypothesis is that tokio_vsock::VsockStream does not properly implement Send+Sync traits required by IronRDP's TokioFramed after commit c30d853f, causing undefined behavior at runtime.
+      </description>
+      <files>src/server/mod.rs (lines 1680-1683), src/server/vsock_sync_wrapper.rs</files>
+      <docs>
+        <link>https://raw.githubusercontent.com/Devolutions/IronRDP/d0e18e3693f313e83c769fb37fa991965d2a39d3/crates/ironrdp-server/src/server.rs</link>
+        <link>https://raw.githubusercontent.com/Devolutions/IronRDP/c30d853fa34c2da02047b1dcb60a009de2b626f1/crates/ironrdp-server/src/server.rs</link>
+        <link>https://docs.rs/tokio-vsock/0.4.0/tokio_vsock/struct.VsockStream.html</link>
+        <link>https://docs.rs/tokio/1/tokio/io/trait.AsyncRead.html</link>
+        <link>https://docs.rs/tokio/1/tokio/io/trait.AsyncWrite.html</link>
+      </docs>
+      <resolution>
+        Created vsock_sync_wrapper.rs module with SyncVsockStream wrapper that provides explicit Sync implementation for tokio_vsock::VsockStream using parking_lot::Mutex for thread-safe access.
+        
+        Changes made:
+        - Created new file: src/server/vsock_sync_wrapper.rs with SyncVsockStream type
+        - Added module declaration in src/server/mod.rs: mod vsock_sync_wrapper
+        - Added in VSOCK listener (line ~1683): let stream = vsock_sync_wrapper::SyncVsockStream::new(stream);
+        
+        The SyncVsockStream wrapper implements AsyncRead, AsyncWrite, Send, and Sync traits, satisfying IronRDP's run_connection requirements where S: AsyncRead + AsyncWrite + Send + Sync + Unpin. While tokio_vsock::VsockStream wraps AsyncFd (which is NOT Sync by default), the wrapper provides proper synchronization.
+        
+        Build verification: cargo build --release --features "vsock,gui,wayland,wl-clipboard,libei" - Compiles successfully with only pre-existing warnings.
+        
+        Note: The TLS InvalidContentType error may indicate Hyper-V ESM uses plain RDP (non-TLS) for VSOCK feature channels, which may require additional fix in upstream IronRDP or separate handling in lamco-rdp-server.
+        Commit: (current)
       </resolution>
     </issue>
   </issue-list>

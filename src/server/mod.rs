@@ -74,6 +74,8 @@ mod input_handler;
 mod multiplexer_loop;
 #[cfg(feature = "vsock")]
 mod vsock_listener;
+#[cfg(feature = "vsock")]
+mod vsock_sync_wrapper;
 
 use std::{net::SocketAddr, sync::Arc};
 
@@ -1676,12 +1678,10 @@ impl LamcoRdpServer {
                                         timestamp: conn_timestamp,
                                     });
 
-                                    use std::os::unix::io::{FromRawFd, IntoRawFd};
-                                    use tokio::net::TcpStream;
-                                    let stream = unsafe {
-                                        let std_stream = std::net::TcpStream::from_raw_fd(stream.into_raw_fd());
-                                        TcpStream::from_std(std_stream).expect("Failed to convert vsock to tcp")
-                                    };
+                                    // Wrap VSOCK stream to satisfy IronRDP's Sync trait bound.
+                                    // tokio_vsock::VsockStream wraps AsyncFd which is NOT Sync,
+                                    // but run_connection requires S: Sync + AsyncRead + AsyncWrite + Send + Unpin.
+                                    let stream = vsock_sync_wrapper::SyncVsockStream::new(stream);
 
                                     if let Err(e) = self.rdp_server.run_connection(stream).await {
                                         let duration = conn_start.elapsed();
